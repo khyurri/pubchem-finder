@@ -6,9 +6,9 @@ import logging
 import pathlib
 import time
 from datetime import datetime
-from typing import Callable, Dict, Generator, List
+from typing import Callable, Dict, Generator
 
-from core import FTP, info
+from core import FTP, info, calc_md5
 
 from elastic import ElasticDatabase
 
@@ -129,25 +129,29 @@ class Pull:
         return next_state
 
     def __checksum(self, state: State):
-        source_file = pathlib.Path(state.get_state().get('source_file') + '.md5')
+        source_file = pathlib.Path(state.get_state().get('source_file'))
         local_file = self.tmpdir / source_file.name
+        source_md5 = pathlib.Path(state.get_state().get('source_file') + '.md5')
+        local_md5 = self.tmpdir / source_md5.name
 
-        info(f'Check md5 {source_file}')
+        info(f'Check md5 {local_file}')
         with FTP(
             self.ftp, 'anonymous', 'anonymous@domain.com', timeout=self.timeout
         ) as ftp_:
-            with open(local_file, 'wb') as target_file:
-                info(f'Download {source_file}')
-                ftp_.get(source_file, target_file)
-        reference_sum = ''
-        with open(local_file, 'r') as md5_ref_file:
+            with open(local_md5, 'wb') as target_file:
+                info(f'Download {local_md5}')
+                ftp_.get(source_md5, target_file)
+
+        with open(local_md5, 'r') as md5_ref_file:
             reference_sum = md5_ref_file.read().split(' ')[0]
 
-        # TODO: check md5 in subprocess
-
-        logging.warning('Skip md5 checksum')
+        current_sum = calc_md5(str(local_file))
 
         next_state = 'extract'
+        if current_sum != reference_sum:
+            logging.error('MD5 sum is not match, file %s', local_md5.name)
+            next_state = 'checksum_error'
+
         state.change_state(next_state, '')
         return next_state
 
@@ -204,7 +208,6 @@ class Pull:
         if cur_state == 'load':
             cur_state = self.__load(state)
         if cur_state == 'clear':
-            # todo: clear
             self.__clear(state)
 
     def execute(self):

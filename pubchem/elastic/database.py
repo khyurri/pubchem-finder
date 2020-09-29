@@ -22,7 +22,7 @@ class ElasticDatabase:
         )
 
     def __bulk(self, body: Dict, tries: int = 0):
-        if tries >= 5:
+        if tries >= 30:
             raise TimeoutError
         try:
             self.es.bulk(index=self.index, body=body)
@@ -38,6 +38,7 @@ class ElasticDatabase:
     def handler(self, source_file: pathlib.Path, sim_type: str = 'sim'):
         docs = []
         indexed: int = 0
+        molecule: indigo.IndigoObject
         for indexed, molecule in enumerate(
                 self.session.iterateSDFile(str(source_file)), 1
         ):
@@ -50,7 +51,7 @@ class ElasticDatabase:
                     "fingerprint": fingerprint,
                     "fingerprint_len": len(fingerprint)
                 }
-                docs.append({"index": {}})
+                docs.append({"index": {}})  # todo: add here upsert/update?
                 docs.append(doc)
                 if len(docs) >= 10000:
                     info(f'Processed {indexed} rows')
