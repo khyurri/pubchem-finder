@@ -9,8 +9,8 @@ from ftpretty import ftpretty
 def info(
     msg_: str,
 ) -> None:
-    now_ = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print(f'{now_} [INFO] {msg_}')
+    now_ = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{now_} [INFO] {msg_}")
 
 
 def calc_md5(file_path: str) -> str:
@@ -20,10 +20,10 @@ def calc_md5(file_path: str) -> str:
     :return:
     """
     if os.path.exists(file_path):
-        output = subprocess.check_output(['md5', file_path]).decode('utf-8')
-        return output.split('=')[-1].strip()
+        output = subprocess.check_output(["md5", file_path]).decode("utf-8")
+        return output.split("=")[-1].strip()
     else:
-        raise FileNotFoundError(f'File {file_path} is not found')
+        raise FileNotFoundError(f"File {file_path} is not found")
 
 
 class FTP:
